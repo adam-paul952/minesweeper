@@ -6,6 +6,8 @@ class Board:
         self.width = width
         self.height = height
         self.mines = mines
+        self.mine_cells = []
+        self.flagged_cells = []
         self.player_board = self.initialize_player_board()
         self.default_board = self.initialize_default_board()
 
@@ -14,12 +16,14 @@ class Board:
 
     def initialize_default_board(self):
         default_board = [[" " for _ in range(self.width)] for _ in range(self.height)]
+
         all_cells = [
             (i, j) for i in range(1, self.height) for j in range(1, self.width)
         ]
-        mine_cells = sample(all_cells, self.mines)
 
-        for i, j in mine_cells:
+        self.mine_cells = sample(all_cells, self.mines)
+
+        for i, j in self.mine_cells:
             default_board[i][j] = "M"
             for x in range(max(0, i - 1), min(i + 2, self.height)):
                 for y in range(max(0, j - 1), min(j + 2, self.width)):
@@ -44,7 +48,7 @@ class Board:
         Example:
         If the player's game board is [['*', '*', '*'], ['*', '*', '*'], ['*', '*', '*']], and the default game board is [['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9']], the function will print:
 
-        | 1 | 2 | 3 |
+          | 1 | 2 | 3 |
         -----------------
         1 | * | * | * |
         -----------------
@@ -55,7 +59,7 @@ class Board:
 
         If reveal is True, the function will print:
 
-        | 1 | 2 | 3 |
+          | 1 | 2 | 3 |
         -----------------
         1 | 1 | 2 | 3 |
         -----------------
@@ -103,7 +107,7 @@ class Board:
         """
         return self.default_board[row][col] == "M"
 
-    def dfs(self, row, col):
+    def dfs(self, row: int, col: int):
         """
         Performs a Depth-First Search (DFS) on the game board starting from a given cell.
 
@@ -111,22 +115,25 @@ class Board:
         row (int): The row number of the cell where the DFS should start.
         col (int): The column number of the cell where the DFS should start.
 
-        The function explores the game board by moving from the starting cell to its unexplored neighbors. If a cell is empty, all its neighbors are added to the stack to be explored. The function continues until all reachable cells have been explored.
+        The function explores the game board by moving from the starting cell to its unexplored neighbors.
+        If a cell is empty, all its neighbors are added to the stack to be explored. The function continues
+        until all reachable cells have been explored.
 
-        The player's view of the game board is updated as cells are explored: each unexplored cell ("*") is replaced with its corresponding value from the actual game board.
+        The player's view of the game board is updated as cells are explored: each unexplored cell ("*") is
+        replaced with its corresponding value from the actual game board.
 
         Note: This function modifies the player_board in-place.
         """
         # List of all 8 possible directions
         directions = [
-            (0, 1),
-            (0, -1),
-            (1, 0),
-            (-1, 0),
-            (1, 1),
-            (1, -1),
-            (-1, 1),
-            (-1, -1),
+            (0, 1),  # move right
+            (0, -1),  # move left
+            (1, 0),  # move down
+            (-1, 0),  # move up
+            (1, 1),  # move down-right
+            (1, -1),  # move down-left
+            (-1, 1),  # move up-right
+            (-1, -1),  # move up-left
         ]
 
         # Stack for DFS
@@ -138,11 +145,124 @@ class Board:
                 self.player_board[r][c] = self.default_board[r][c]
                 if self.default_board[r][c] == " ":
                     # If the cell is empty, add all its neighbors to the stack
-                    for dr, dc in directions:
-                        nr, nc = r + dr, c + dc
+                    for delta_row, delta_col in directions:
+                        new_row, new_col = r + delta_row, c + delta_col
                         if (
-                            0 <= nr < self.height
-                            and 0 <= nc < self.width
-                            and self.player_board[nr][nc] == "*"
+                            0 <= new_row < self.height
+                            and 0 <= new_col < self.width
+                            and self.player_board[new_row][new_col] == "*"
                         ):
-                            stack.append((nr, nc))
+                            stack.append((new_row, new_col))
+
+    def flag_mine(self, row, col):
+        """
+        Flags a cell as containing a mine.
+
+        Args:
+        row (int): The row number of the cell to flag.
+        col (int): The column number of the cell to flag.
+
+        The function updates the player's game board to flag the cell at the given row and column.
+        The cell is marked with an "F" to indicate that the player believes it contains a mine.
+
+        Note: This function modifies the player_board in-place.
+        """
+        self.player_board[row][col] = "F"
+        print("\nCell flagged.")
+        self.flagged_cells.append((row, col))
+        self.draw_game_board()
+
+    def remove_flag(self, row: int, col: int):
+        """
+        Removes the flag from a cell.
+
+        Args:
+        row (int): The row number of the cell to unflag.
+        col (int): The column number of the cell to unflag.
+
+        The function updates the player's game board to remove the flag from the cell at the given row and column.
+        The cell is marked with a "*" to indicate that the player is unsure if it contains a mine.
+
+        Note: This function modifies the player_board in-place.
+        """
+        self.player_board[row][col] = "*"
+        self.flagged_cells.remove((row, col))
+        self.draw_game_board()
+
+    def check_win(self) -> bool:
+        """
+        Checks if the player has won the game.
+
+        The player wins the game if all the mine cells have been correctly flagged
+        or if the only cells on the player's game board that still contain a "*" are
+        the mine cells. This is determined by comparing the mine_cells and flagged_cells
+        lists and by checking the player's game board. If the conditions are met,
+        the function returns True; otherwise, it returns False.
+
+        Returns:
+        bool: True if the player has won the game, False otherwise.
+        """
+        if set(self.mine_cells) == set(self.flagged_cells):
+            return True
+
+        for i in range(self.height):
+            for j in range(self.width):
+                if self.player_board[i][j] == "*" and (i, j) not in self.mine_cells:
+                    return False
+
+        return True
+
+    def get_cell_value(self, row: int, col: int, board="player_board") -> str:
+        """
+        Returns the value at a specific cell in a given board.
+
+        Args:
+        board (str): The name of the board ("player_board" or "default_board").
+        row (int): The row number of the cell.
+        col (int): The column number of the cell.
+
+        Returns:
+        str: The value at the specified cell in the specified board.
+        """
+        if board == "player_board":
+            return self.player_board[row][col]
+        elif board == "default_board":
+            return self.default_board[row][col]
+        else:
+            raise ValueError(
+                "Invalid board name. Must be 'player_board' or 'default_board'."
+            )
+
+    def reveal_cell(self, row, col):
+        """
+        Reveals the cell at the given row and column.
+
+        Args:
+        row (int): The row number of the cell to reveal.
+        col (int): The column number of the cell to reveal.
+
+        The function updates the player's game board to reveal the cell at the given row and column.
+        If the cell contains a mine, the game is over, and the function returns False.
+        If the cell is empty, the function performs a Depth-First Search (DFS) to reveal all connected empty cells.
+        If the cell is a number, the function reveals the cell and returns True.
+
+        Returns:
+        bool: True if the cell is a number, False if the cell is a mine.
+        """
+        if self.is_mine(row, col):
+            print("You hit a mine!\nGame Over.")
+            self.draw_game_board(True)
+            return False
+
+        elif (
+            self.get_cell_value(row, col) != "*"
+            and self.get_cell_value(row, col) != "F"
+        ):
+            print("\nCell already revealed.")
+            return True
+
+        self.dfs(row, col)
+        self.player_board[row][col] = self.default_board[row][col]
+        print("Safe move.")
+        self.draw_game_board()
+        return True
