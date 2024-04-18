@@ -1,3 +1,3 @@
 # Minesweeper
 
-Codecademy Portfolio Project 1 - Python Terminal Game
+A simple minesweeper terminal game written in Python.
