@@ -2,7 +2,24 @@ from random import sample
 
 
 class Board:
-    def __init__(self, width, height, mines):
+    def __init__(self, width: int, height: int, mines: int):
+        """
+        Initializes a new game board.
+
+        Args:
+            width (int): The number of columns in the game board.
+            height (int): The number of rows in the game board.
+            mines (int): The number of mines on the game board.
+
+        Attributes:
+            width (int): The number of columns in the game board.
+            height (int): The number of rows in the game board.
+            mines (int): The number of mines on the game board.
+            mine_cells (list): A list of tuples representing the coordinates of the mine cells.
+            flagged_cells (list): A list of tuples representing the coordinates of the flagged cells.
+            player_board (list): A 2D list representing the player's game board.
+            default_board (list): A 2D list representing the default game board.
+        """
         self.width = width
         self.height = height
         self.mines = mines
@@ -12,9 +29,25 @@ class Board:
         self.default_board = self.initialize_default_board()
 
     def initialize_player_board(self):
+        """
+        Initializes the player's game board.
+
+        All cells are initially hidden and marked with a "*".
+
+        Returns:
+            list: A 2D list representing the player's game board.
+        """
         return [["*" for _ in range(self.width)] for _ in range(self.height)]
 
     def initialize_default_board(self):
+        """
+        Initializes the default game board.
+
+        The default game board contains the mine locations and the numbers indicating the number of mines in the neighboring cells.
+
+        Returns:
+            list: A 2D list representing the default game board.
+        """
         default_board = [[" " for _ in range(self.width)] for _ in range(self.height)]
 
         all_cells = [

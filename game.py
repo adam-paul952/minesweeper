@@ -11,7 +11,7 @@ class Game:
 
         Args:
             game_options (dict): A dictionary containing the options for the game.
-                                 The keys are the names of the options and the values are the corresponding settings.
+                                The keys are the names of the options and the values are the corresponding settings.
 
         Attributes:
             game_options (dict): Stores the options for the game.
